@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  PYTHON_VERSION: "3.14"   # keep equal to the Dockerfile PYTHON_VERSION
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint (flake8)
+        run: flake8 src tests | tee flake8.log
+
+      - name: Unit tests (pytest)
+        run: pytest -v --junitxml=pytest-report.xml
+
+      - name: Upload lint and test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            flake8.log
+            pytest-report.xml
+
+  train:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Train models
+        run: python -m src.train 2>&1 | tee train.log
+
+      - name: Upload training artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model
+          path: |
+            models/
+            report/figures/roc_*.png
+            report/figures/confusion_*.png
+            mlflow.db
+            train.log
+
+  docker:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --build-arg PYTHON_VERSION=${{ env.PYTHON_VERSION }} -t heart-api:ci .
+
+      - name: Run container
+        run: docker run -d --name heart-api -p 8000:8000 heart-api:ci
+
+      - name: Smoke test /health and /predict
+        run: |
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:8000/health && break
+            sleep 2
+          done
+          curl -sf http://localhost:8000/health
+          curl -sf -X POST http://localhost:8000/predict \
+            -H "Content-Type: application/json" \
+            -d '{"age":67,"sex":1,"cp":4,"trestbps":160,"chol":286,"fbs":0,"restecg":2,"thalach":108,"exang":1,"oldpeak":1.5,"slope":2,"ca":3,"thal":3}' \
+            | tee predict-response.json
+          python3 -c "import json; r=json.load(open('predict-response.json')); assert r['prediction'] in (0,1) and 0.5 <= r['confidence'] <= 1"
+
+      - name: Collect container logs
+        if: always()
+        run: docker logs heart-api > container.log 2>&1 || true
+
+      - name: Upload container logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-smoke-test
+          path: |
+            container.log
+            predict-response.json
