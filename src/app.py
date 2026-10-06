@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Optional
 
 import joblib
-import numpy as np
 import pandas as pd
 from fastapi import FastAPI, Request, Response
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
