@@ -47,4 +47,3 @@ jobs:
         env:
           SONAR_TOKEN: ${{ env.SONAR_SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_SONAR_HOST_URL }}
-```
