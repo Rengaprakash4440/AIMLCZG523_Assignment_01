@@ -23,7 +23,7 @@ jobs:
       # Use the EC2 instance profile for AWS credentials.
       # No OIDC role assumption is required.
       - name: Verify AWS Identity
-        run: aws sts get-caller-identity
+        run: sudo aws sts get-caller-identity
 
       # Retrieve SonarQube secrets from AWS Secrets Manager
       - name: Get SonarQube Secrets
