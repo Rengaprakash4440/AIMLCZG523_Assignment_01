@@ -1,14 +1,13 @@
+```yaml
 name: Build
-
 
 on:
   push:
-    branches: [main]
-
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
 
 jobs:
@@ -22,14 +21,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Authenticate AWS using OIDC
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::466217811358:role/mysecret
-          aws-region: ap-south-1
+      # Use the EC2 instance profile for AWS credentials.
+      # No OIDC role assumption is required.
+      - name: Verify AWS Identity
+        run: aws sts get-caller-identity
 
-      # Retrieve SonarQube secrets during runtime
+      # Retrieve SonarQube secrets from AWS Secrets Manager
       - name: Get SonarQube Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
@@ -41,8 +38,8 @@ jobs:
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
-          SONAR_TOKEN: ${{ env.SONARCUBE_KEY }}
-          SONAR_HOST_URL: ${{ env.SONARCUBE_HOST}}
+          SONAR_TOKEN: ${{ env.SONAR_SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_SONAR_HOST_URL }}
 
       # Check Quality Gate
       - name: SonarQube Quality Gate Check
@@ -51,3 +48,4 @@ jobs:
         env:
           SONAR_TOKEN: ${{ env.SONAR_SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_SONAR_HOST_URL }}
+```
