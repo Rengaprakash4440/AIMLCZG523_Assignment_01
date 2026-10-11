@@ -25,7 +25,7 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::466217811358:role/WEBIDENTITYSONARQUBE
+          role-to-assume: arn:aws:iam::466217811358:role/eksctl-heart-mlops-cluster-ServiceRole-fLXC34cCrOOg
           aws-region: ap-south-1
 
       # Retrieve SonarQube secrets during runtime
