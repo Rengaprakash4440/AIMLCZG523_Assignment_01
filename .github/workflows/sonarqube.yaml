@@ -1,13 +1,14 @@
-
 name: Build
 
-
- 
 on:
   push:
     branches: [main]
 
   workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   build:
@@ -20,15 +21,32 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Authenticate AWS using OIDC
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::466217811358:policy/ACCESSSECRET
+          aws-region: ap-south-1
+
+      # Retrieve SonarQube secrets during runtime
+      - name: Get SonarQube Secrets
+        uses: aws-actions/aws-secretsmanager-get-secrets@v2
+        with:
+          secret-ids: |
+            SONAR,sonarqube/github-actions
+          parse-json-secrets: true
+
+      # Run SonarQube Scan
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ env.SONARCUBE_KEY }}
+          SONAR_HOST_URL: ${{ env.SONARCUBE_HOST}}
 
+      # Check Quality Gate
       - name: SonarQube Quality Gate Check
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
         timeout-minutes: 5
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ env.SONAR_SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_SONAR_HOST_URL }}
