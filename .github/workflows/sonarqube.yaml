@@ -57,8 +57,8 @@ jobs:
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
-          SONAR_TOKEN: ${{ env.SONARCUBE_KEY }}
-          SONAR_HOST_URL: ${{ env.SONARCUBE_HOST }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
 
       # Check SonarQube Quality Gate
       - name: SonarQube Quality Gate Check
