@@ -67,38 +67,6 @@ jobs:
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
-
-     name: Build and Security Scan
-
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
-
-  permissions:
-  contents: read
-
-  jobs:
-  build:
-    name: Build and DevSecOps Scan
-    runs-on: self-hosted
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      # Install Checkov in an isolated Python environment
-      - name: Install Checkov
-        run: |
-          python3 -m venv ~/checkov-venv
-          ~/checkov-venv/bin/python -m pip install --upgrade pip
-          ~/checkov-venv/bin/python -m pip install checkov
-
-      # Verify Checkov installation
       - name: Verify Checkov Installation
         run: |
           ~/checkov-venv/bin/checkov --version
@@ -117,4 +85,3 @@ on:
             -d k8s \
             --framework kubernetes
 
-      # Add your existing Docker build and deployment steps below
