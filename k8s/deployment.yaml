@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: heart-api
-  namespace: heartbeat-api
   labels:
     app: heart-api
 spec:
@@ -19,7 +18,9 @@ spec:
         prometheus.io/port: "8000"
         prometheus.io/path: /metrics
     spec:
-      # Pod-level security context
+      # CKV_K8S_38
+      automountServiceAccountToken: false
+
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
@@ -30,7 +31,13 @@ spec:
 
       containers:
         - name: heart-api
-          image: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/heart-api:1.0
+
+          # CKV_K8S_43: Replace the placeholder with
+          # the real SHA256 digest from your ECR repository.
+          image: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/heart-api@sha256:REPLACE_WITH_REAL_DIGEST
+
+          # CKV_K8S_15
+          imagePullPolicy: Always
 
           ports:
             - containerPort: 8000
@@ -39,7 +46,6 @@ spec:
             - name: LOG_LEVEL
               value: INFO
 
-          # Container-level security context
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false
