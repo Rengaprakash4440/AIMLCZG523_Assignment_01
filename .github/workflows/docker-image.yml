@@ -1,4 +1,8 @@
+
+
+```yaml
 name: Docker Image Building, Trivy Scan and ECR Push
+
 on:
   push:
     branches: ["main"]
@@ -17,20 +21,20 @@ jobs:
     env:
       AWS_REGION: ap-south-1
       ECR_REPOSITORY: heart
-      IMAGE_NAME: heart
 
     steps:
+      # Step 1: Checkout repository
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Step 1: Build Docker image
-      - name: Build the Docker Image
+      # Step 2: Build Docker image
+      - name: Build Docker Image
         run: |
           sudo docker build \
             -f dockerfiles/Dockerfile \
             -t heart:latest .
 
-      # Step 2: Install Trivy if not already installed
+      # Step 3: Install Trivy if missing
       - name: Install Trivy
         run: |
           if ! command -v trivy >/dev/null 2>&1; then
@@ -50,51 +54,69 @@ jobs:
             echo "Trivy is already installed."
           fi
 
-      # Step 3: Scan image before pushing
-      - name: Scan Docker Image with Trivy
+      # Step 4: Scan image before pushing
+      - name: Trivy Image Scan
         run: |
           sudo trivy image \
             --scanners vuln \
             --severity HIGH,CRITICAL \
+            --exit-code 1 \
             --ignore-unfixed \
             heart:latest
 
-      # Do not push images from pull requests
-      # Step 4 onwards run only after the scan succeeds
-      - name: Configure AWS Credentials
+      # Step 5: Configure AWS credentials using CLI
+      - name: Configure AWS CLI
         if: github.event_name != 'pull_request'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          sudo aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
+          sudo aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
+          sudo  aws configure set region "$AWS_REGION"
+          sudo aws configure set output json
 
-      # Step 5: Log in to Amazon ECR
+          sudo aws sts get-caller-identity
+
+      # Step 6: Get AWS account ID and ECR registry
+      - name: Get ECR Registry
+        if: github.event_name != 'pull_request'
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity \
+            --query Account \
+            --output text)
+
+          ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+          echo "ECR_REGISTRY=$ECR_REGISTRY" >> "$GITHUB_ENV"
+
+      # Step 7: Login to ECR using AWS CLI
       - name: Login to Amazon ECR
         if: github.event_name != 'pull_request'
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        run: |
+          aws ecr get-login-password \
+            --region "$AWS_REGION" \
+            | sudo docker login \
+                --username AWS \
+                --password-stdin "$ECR_REGISTRY"
 
-      # Step 6: Tag image for ECR
+      # Step 8: Tag image for ECR
       - name: Tag Docker Image
         if: github.event_name != 'pull_request'
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           sudo docker tag heart:latest \
-            $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+            "$ECR_REGISTRY/$ECR_REPOSITORY:${GITHUB_SHA}"
 
           sudo docker tag heart:latest \
-            $ECR_REGISTRY/$ECR_REPOSITORY:latest
+            "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
 
-      # Step 7: Push image to ECR
+      # Step 9: Push image to ECR
       - name: Push Docker Image to ECR
         if: github.event_name != 'pull_request'
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           sudo docker push \
-            $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+            "$ECR_REGISTRY/$ECR_REPOSITORY:${GITHUB_SHA}"
 
           sudo docker push \
-            $ECR_REGISTRY/$ECR_REPOSITORY:latest
+            "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+```
