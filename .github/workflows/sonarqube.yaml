@@ -22,7 +22,7 @@ jobs:
 
       # Verify AWS credentials from the EC2 instance profile
       - name: Verify AWS Identity
-        run: aws sts get-caller-identity
+        run: sudo aws sts get-caller-identity
 
       # Retrieve SonarQube secrets from AWS Secrets Manager
       - name: Get SonarQube Secrets
