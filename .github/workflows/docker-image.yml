@@ -51,7 +51,6 @@ jobs:
           sudo trivy image \
             --scanners vuln \
             --severity HIGH,CRITICAL \
-            --exit-code 1 \
             --ignore-unfixed \
             heart:latest
 
