@@ -90,7 +90,7 @@ jobs:
       - name: Login to Amazon ECR
         if: github.event_name != 'pull_request'
         run: |
-          aws ecr get-login-password \
+         sudo aws ecr get-login-password \
             --region "$AWS_REGION" \
             | sudo docker login \
                 --username AWS \
