@@ -1,5 +1,4 @@
 name: Docker Image Building, Trivy Scan and ECR Push
-
 on:
   push:
     branches: ["main"]
