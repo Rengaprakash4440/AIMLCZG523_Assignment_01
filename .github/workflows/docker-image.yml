@@ -78,7 +78,7 @@ jobs:
       - name: Get ECR Registry
         if: github.event_name != 'pull_request'
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity \
+          ACCOUNT_ID=$(sudo aws sts get-caller-identity \
             --query Account \
             --output text)
 
