@@ -22,28 +22,48 @@ jobs:
 
       # Verify AWS credentials from the EC2 instance profile
       - name: Verify AWS Identity
-        run: sudo aws sts get-caller-identity
+        run: aws sts get-caller-identity
 
       # Retrieve SonarQube secrets from AWS Secrets Manager
       - name: Get SonarQube Secrets
-        uses: aws-actions/aws-secretsmanager-get-secrets@v2
-        with:
-          aws-region: ap-south-1
-          secret-ids: |
-            SONAR,arn:aws:secretsmanager:ap-south-1:466217811358:secret:MYSECRETS-JWHSYV
-          parse-json-secrets: true
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SECRET_JSON=$(sudo aws secretsmanager get-secret-value \
+            --secret-id "arn:aws:secretsmanager:ap-south-1:466217811358:secret:MYSECRETS-JWHSYV" \
+            --region ap-south-1 \
+            --query SecretString \
+            --output text)
+
+          SONAR_TOKEN=$(echo "$SECRET_JSON" | jq -r '.SONARCUBE_KEY')
+          SONAR_HOST_URL=$(echo "$SECRET_JSON" | jq -r '.SONARCUBE_HOST')
+
+          if [[ -z "$SONAR_TOKEN" || "$SONAR_TOKEN" == "null" ||
+                -z "$SONAR_HOST_URL" || "$SONAR_HOST_URL" == "null" ]]; then
+            echo "Required SonarQube secrets are missing."
+            exit 1
+          fi
+
+          echo "::add-mask::$SONAR_TOKEN"
+          echo "::add-mask::$SONAR_HOST_URL"
+
+          {
+            echo "SONAR_TOKEN=$SONAR_TOKEN"
+            echo "SONAR_HOST_URL=$SONAR_HOST_URL"
+          } >> "$GITHUB_ENV"
 
       # Run SonarQube Scan
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
-          SONAR_TOKEN: ${{ env.SONAR_SONARCUBE_KEY }}
-          SONAR_HOST_URL: ${{ env.SONAR_SONARCUBE_HOST }}
+          SONAR_TOKEN: ${{ env.SONARCUBE_KEY }}
+          SONAR_HOST_URL: ${{ env.SONARCUBE_HOST }}
 
       # Check SonarQube Quality Gate
       - name: SonarQube Quality Gate Check
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
         timeout-minutes: 5
         env:
-          SONAR_TOKEN: ${{ env.SONAR_SONARCUBE_KEY }}
-          SONAR_HOST_URL: ${{ env.SONAR_SONARCUBE_HOST }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
