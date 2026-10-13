@@ -1,0 +1,33 @@
+name: Docker Image Building, Trivy Scan and ECR Push
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build, Scan and Push to ECR
+    runs-on: self-hosted
+
+    env:
+      AWS_REGION: ap-south-1
+      ECR_REPOSITORY: heart-api
+    steps:
+      # Step 5: Configure AWS credentials using CLI
+      - name: Configure AWS CLI
+        if: github.event_name != 'pull_request'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          sudo aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
+          sudo aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
+          sudo  aws configure set region "$AWS_REGION"
+          sudo aws configure set output json
+
+          sudo aws sts get-caller-identity
