@@ -20,16 +20,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Use the EC2 instance profile for AWS credentials.
-      # No OIDC role assumption is required.
+      # Verify AWS credentials from the EC2 instance profile
       - name: Verify AWS Identity
-        run: sudo aws sts get-caller-identity
+        run: aws sts get-caller-identity
 
       # Retrieve SonarQube secrets from AWS Secrets Manager
       - name: Get SonarQube Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
-        aws-region: ap-south-1
+          aws-region: ap-south-1
           secret-ids: |
             SONAR,MYSECRETS
           parse-json-secrets: true
@@ -38,13 +37,13 @@ jobs:
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
-          SONAR_TOKEN: ${{ env.SONAR_SONARCUBE_KEY }}
-          SONAR_HOST_URL: ${{ env.SONAR_SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
 
-      # Check Quality Gate
+      # Check SonarQube Quality Gate
       - name: SonarQube Quality Gate Check
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
         timeout-minutes: 5
         env:
-          SONAR_TOKEN: ${{ env.SONAR_SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ env.SONAR_SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
