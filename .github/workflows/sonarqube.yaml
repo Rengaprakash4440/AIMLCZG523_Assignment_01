@@ -20,9 +20,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Verify AWS credentials from the EC2 instance profile
       - name: Verify AWS Identity
         run: sudo aws sts get-caller-identity
 
+      # Retrieve SonarQube secrets from AWS Secrets Manager
       - name: Get SonarQube Secrets
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
@@ -31,12 +33,14 @@ jobs:
             SONAR,arn:aws:secretsmanager:ap-south-1:466217811358:secret:MYSECRETS-JWHSYV
           parse-json-secrets: true
 
+      # Run SonarQube Scan
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
           SONAR_TOKEN: ${{ env.SONAR_SONARCUBE_KEY }}
           SONAR_HOST_URL: ${{ env.SONAR_SONARCUBE_HOST }}
 
+      # Check SonarQube Quality Gate
       - name: SonarQube Quality Gate Check
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
         timeout-minutes: 5
