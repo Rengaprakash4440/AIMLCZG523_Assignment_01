@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: heart-api-network-policy
-  # Add namespace: YOUR_NAMESPACE if needed
+  namespace: heartbeat-api
 spec:
   podSelector:
     matchLabels:
