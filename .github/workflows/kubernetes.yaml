@@ -1,4 +1,5 @@
 name: Kubernetes Deployments
+
 on:
   push:
     branches: ["main"]
@@ -10,15 +11,16 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build, Scan and Push to ECR
+  deploy:
+    name: Configure AWS and Kubernetes
     runs-on: self-hosted
 
     env:
       AWS_REGION: ap-south-1
-      ECR_REPOSITORY: heart-api
+      EKS_CLUSTER_NAME: heart-mlops
+
     steps:
-      # Step 5: Configure AWS credentials using CLI
+      # Step 1: Configure AWS credentials
       - name: Configure AWS CLI
         if: github.event_name != 'pull_request'
         env:
@@ -27,10 +29,30 @@ jobs:
         run: |
           sudo aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
           sudo aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
-          sudo  aws configure set region "$AWS_REGION"
+          sudo aws configure set region "$AWS_REGION"
           sudo aws configure set output json
+
           sudo aws sts get-caller-identity
-          
-          - name: kubernetes setup
-          run: |
-            aws eks update-kubeconfig --region ap-south-1 --name heart-mlops
+
+      # Step 2: Verify AWS CLI and kubectl
+      - name: Verify CLI Tools
+        if: github.event_name != 'pull_request'
+        run: |
+          sudo aws --version
+          sudo kubectl version --client
+
+      # Step 3: Configure EKS kubeconfig
+      - name: Kubernetes Setup
+        if: github.event_name != 'pull_request'
+        run: |
+          sudo aws eks update-kubeconfig \
+            --region "$AWS_REGION" \
+            --name "$EKS_CLUSTER_NAME"
+
+      # Step 4: Verify Kubernetes connection
+      - name: Verify Kubernetes Cluster
+        if: github.event_name != 'pull_request'
+        run: |
+          sudo kubectl cluster-info
+          sudo kubectl get nodes
+
