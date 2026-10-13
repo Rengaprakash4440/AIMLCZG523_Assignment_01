@@ -67,3 +67,8 @@ jobs:
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+
+      - name: Checkov Security Scan
+        run: |
+          checkov --file Dockerfile --framework dockerfile
+          checkov -d k8s --framework kubernetes
