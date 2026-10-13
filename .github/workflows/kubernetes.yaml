@@ -29,5 +29,8 @@ jobs:
           sudo aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
           sudo  aws configure set region "$AWS_REGION"
           sudo aws configure set output json
-
           sudo aws sts get-caller-identity
+          
+          - name: kubernetes setup
+          run: |
+            aws eks update-kubeconfig --region ap-south-1 --name heart-mlops
