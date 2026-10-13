@@ -59,5 +59,8 @@ jobs:
       - name: Verify Kubernetes Cluster
         if: github.event_name != 'pull_request'
         run: |
-          sudo kubectl cluster-info
-          sudo kubectl get nodes
+          sudo kubectl apply -f k8s/namespaces.yaml
+          sudo kubectl apply -f k8s/deployment.yaml
+          sudo kubectl apply -f k8s/service.yaml
+          sudo kubectl apply -f k8s/network-policy.yaml
+          
