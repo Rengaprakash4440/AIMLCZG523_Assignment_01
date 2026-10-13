@@ -1,18 +1,57 @@
-name: Docker Image building
+```yaml
+name: Docker Image Building and Trivy Scan
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-
   build:
-
+    name: Build and Scan Docker Image
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: sudo docker build -f dockerfiles/Dockerfile -t heart .
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build the Docker Image
+        run: |
+          sudo docker build \
+            -f dockerfiles/Dockerfile \
+            -t heart:latest .
+
+      - name: Install Trivy
+        run: |
+          if ! command -v trivy >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y wget gnupg
+
+            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+              | gpg --dearmor \
+              | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+
+            echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
+              | sudo tee /etc/apt/sources.list.d/trivy.list
+
+            sudo apt-get update
+            sudo apt-get install -y trivy
+          else
+            echo "Trivy is already installed."
+          fi
+
+      - name: Scan Docker Image with Trivy
+        run: |
+          sudo trivy image \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            heart:latest
+```
