@@ -3,4 +3,4 @@ kind: Namespace
 metadata:
   name: heartbeat-api
   labels:
-    app: heart-api
+    environment: Production
