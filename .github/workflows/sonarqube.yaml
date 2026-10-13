@@ -30,14 +30,14 @@ jobs:
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
           secret-ids: |
-            SONAR,sonarqube/github-actions
+            SONAR,MYSECRETS
           parse-json-secrets: true
 
       # Run SonarQube Scan
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8.1.0
         env:
-          SONAR_TOKEN: ${{ env.SONAR_SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ env.SONAR_SONARCUBE_KEY }}
           SONAR_HOST_URL: ${{ env.SONAR_SONAR_HOST_URL }}
 
       # Check Quality Gate
