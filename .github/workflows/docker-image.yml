@@ -1,4 +1,4 @@
-```yaml
+
 name: Docker Image Building and Trivy Scan
 
 on:
@@ -54,4 +54,4 @@ jobs:
             --exit-code 1 \
             --ignore-unfixed \
             heart:latest
-```
+
