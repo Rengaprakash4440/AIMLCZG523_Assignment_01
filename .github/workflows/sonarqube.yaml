@@ -30,7 +30,7 @@ jobs:
         with:
           aws-region: ap-south-1
           secret-ids: |
-            SONAR,MYSECRETS
+            SONAR,arn:aws:secretsmanager:ap-south-1:466217811358:secret:MYSECRETS-JWHSYV
           parse-json-secrets: true
 
       # Run SonarQube Scan
