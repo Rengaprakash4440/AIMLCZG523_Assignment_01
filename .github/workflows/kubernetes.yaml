@@ -63,4 +63,13 @@ jobs:
           sudo kubectl apply -f kubernetes/deployment.yaml
           sudo kubectl apply -f kubernetes/service.yaml
           sudo kubectl apply -f kubernetes/network-policy.yaml
-          
+
+     # Running via Docker is the cleanest way to install and run ZAP without managing Java dependencies
+      - name: Pull OWASP ZAP Docker Image
+        run: docker pull zaproxy/zap-stable:latest
+
+      - name: Run OWASP ZAP Baseline Scan
+        run: |
+          docker run --rm -v $(pwd):/zap/wrk/:rw -t zaproxy/zap-stable zap-baseline.py \
+            -t http://localhost:3000 \
+            -r zap_report.html
