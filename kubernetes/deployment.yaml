@@ -32,7 +32,7 @@ spec:
       containers:
         - name: heart-api
 
-          image: 466217811358.dkr.ecr.ap-south-1.amazonaws.com/heart-api@sha256:420f68e00a99dbc7085790c22864fdb4729d0391d1d1b8e2bace17210990235d
+          image: 466217811358.dkr.ecr.ap-south-1.amazonaws.com/heart-api@sha256:2e82be47bcd2ee40f6cfc076baf7beffdce6d02d9051c670a9d9c5d497289e13
 
           imagePullPolicy: Always
 
