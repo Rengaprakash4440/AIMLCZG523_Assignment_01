@@ -103,15 +103,9 @@ jobs:
           sudo docker tag heart:latest \
             "$ECR_REGISTRY/$ECR_REPOSITORY:${GITHUB_SHA}"
 
-          sudo docker tag heart:latest \
-            "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
-
       # Step 9: Push image to ECR
       - name: Push Docker Image to ECR
         if: github.event_name != 'pull_request'
         run: |
           sudo docker push \
             "$ECR_REGISTRY/$ECR_REPOSITORY:${GITHUB_SHA}"
-
-          sudo docker push \
-            "$ECR_REGISTRY/$ECR_REPOSITORY:latest"

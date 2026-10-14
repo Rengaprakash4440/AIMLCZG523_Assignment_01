@@ -19,7 +19,6 @@ spec:
         prometheus.io/port: "8000"
         prometheus.io/path: /metrics
     spec:
-      # CKV_K8S_38
       automountServiceAccountToken: false
 
       securityContext:
@@ -33,11 +32,8 @@ spec:
       containers:
         - name: heart-api
 
-          # CKV_K8S_43: Replace the placeholder with
-          # the real SHA256 digest from your ECR repository.
-          image: ACCOUNT_ID.dkr.ecr.ap-south-1.amazonaws.com/heart-api@sha256:REPLACE_WITH_REAL_DIGEST
+          image: 466217811358.dkr.ecr.ap-south-1.amazonaws.com/heart-api@sha256:420f68e00a99dbc7085790c22864fdb4729d0391d1d1b8e2bace17210990235d
 
-          # CKV_K8S_15
           imagePullPolicy: Always
 
           ports:

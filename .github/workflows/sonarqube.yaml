@@ -75,13 +75,13 @@ jobs:
       - name: Checkov Dockerfile Scan
         run: |
           ~/checkov-venv/bin/checkov \
-            --file Dockerfile \
+            -d dockerfiles --file Dockerfile \
             --framework dockerfile
 
       # Scan Kubernetes YAML files
       - name: Checkov Kubernetes Scan
         run: |
           ~/checkov-venv/bin/checkov \
-            -d k8s \
+            -d kubernetes \
             --framework kubernetes
 
