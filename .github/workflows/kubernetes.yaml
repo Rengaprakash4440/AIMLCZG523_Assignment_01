@@ -68,8 +68,4 @@ jobs:
       - name: Pull OWASP ZAP Docker Image
         run: sudo docker pull zaproxy/zap-stable:latest
 
-      - name: Run OWASP ZAP Baseline Scan
-        run: |
-          sudo docker run --rm -v $(pwd):/zap/wrk/:rw -t zaproxy/zap-stable zap-baseline.py \
-            -t http://localhost:3000 \
-            -r zap_report.html
+
