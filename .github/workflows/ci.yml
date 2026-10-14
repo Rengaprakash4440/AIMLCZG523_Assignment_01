@@ -6,7 +6,7 @@ on:
   pull_request:
 
 env:
-  PYTHON_VERSION: "3.12"   # keep equal to the Dockerfile PYTHON_VERSION
+  PYTHON_VERSION: "3.14"   
 
 jobs:
   ml-pipeline:
@@ -20,29 +20,29 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt 
 
-      - name: 1. Lint (flake8)
+      - name: Lint (flake8)
         run: flake8 src tests | tee flake8.log
 
-      - name: 2. Unit tests (pytest)
+      - name: Unit tests (pytest)
         run: pytest -v --junitxml=pytest-report.xml
 
-      - name: 3. Dataset preparation
+      - name: Dataset preparation
         run: |
           python -m src.download_data
           python -c "from src.data import load_clean; load_clean().to_csv('data/heart_clean.csv', index=False)"
           git diff --exit-code data/heart_clean.csv && echo "Prepared dataset matches the committed copy"
 
-      - name: 4. Exploratory analysis (headless notebook)
+      - name: Exploratory analysis (headless notebook)
         run: |
-          jupyter nbconvert --to notebook --execute notebooks/01_eda.ipynb \
+          jupyter nbconvert --to notebook --execute report/notebooks/01_eda.ipynb \
             --output executed_eda.ipynb --output-dir report/
 
-      - name: 5. Train and track experiments (MLflow)
+      - name: Train and track experiments (MLflow)
         run: python -m src.train 2>&1 | tee train.log
 
-      - name: 6. Model comparison
+      - name: Model comparison
         run: |
           python - <<'EOF'
           import mlflow
@@ -55,7 +55,7 @@ jobs:
           print(df.to_string(index=False))
           EOF
 
-      - name: 7. Reproducibility check
+      - name: Reproducibility check
         run: |
           pip freeze > environment-lock.txt
           cp models/metadata.json /tmp/metadata_run1.json
