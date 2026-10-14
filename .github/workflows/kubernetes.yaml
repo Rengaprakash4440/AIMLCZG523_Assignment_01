@@ -66,7 +66,7 @@ jobs:
 
      # Running via Docker is the cleanest way to install and run ZAP without managing Java dependencies
       - name: Pull OWASP ZAP Docker Image
-        run: sudo docker pull zaproxy/zap-stable:latest
+        run: sudo docker pull ghcr.io/zaproxy/zaproxy:stable
 
       # Step 9: Verify target URL
       - name: Verify Application URL
