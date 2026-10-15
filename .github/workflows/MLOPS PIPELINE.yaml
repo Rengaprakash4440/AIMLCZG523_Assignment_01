@@ -35,18 +35,18 @@ jobs:
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/docker-image.yml
 
-  deploy:
-    name: Deploy to EKS
-    needs: build
-    if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/kubernetes.yaml
-    with:
-      image: ${{ needs.build.outputs.image }}
+  # deploy:
+  #   name: Deploy to EKS
+  #   needs: build
+  #   if: github.event_name != 'pull_request'
+  #   uses: ./.github/workflows/kubernetes.yaml
+  #   with:
+  #     image: ${{ needs.build.outputs.image }}
 
-  zap:
-    name: OWASP ZAP scans
-    needs: deploy
-    if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/zap-scan.yml
-    with:
-      url: ${{ needs.deploy.outputs.url }}
+  # zap:
+  #   name: OWASP ZAP scans
+  #   needs: deploy
+  #   if: github.event_name != 'pull_request'
+  #   uses: ./.github/workflows/zap-scan.yml
+  #   with:
+  #     url: ${{ needs.deploy.outputs.url }}
