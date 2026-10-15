@@ -78,13 +78,15 @@ def main():
             RocCurveDisplay.from_estimator(model, X_te, y_te, ax=ax)
             ax.set_title(f"ROC - {name}")
             roc_p = FIG / f"roc_{name}.png"
-            fig.savefig(roc_p, dpi=150, bbox_inches="tight"); plt.close(fig)
+            fig.savefig(roc_p, dpi=150, bbox_inches="tight")
+            plt.close(fig)
 
             fig, ax = plt.subplots()
             ConfusionMatrixDisplay.from_predictions(y_te, pred, ax=ax)
             ax.set_title(f"Confusion matrix - {name}")
             cm_p = FIG / f"confusion_{name}.png"
-            fig.savefig(cm_p, dpi=150, bbox_inches="tight"); plt.close(fig)
+            fig.savefig(cm_p, dpi=150, bbox_inches="tight")
+            plt.close(fig)
 
             grid_p = Path(f"models/gridsearch_{name}.csv")
             pd.DataFrame(gs.cv_results_).to_csv(grid_p, index=False)
