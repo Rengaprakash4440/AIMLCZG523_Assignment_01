@@ -20,18 +20,18 @@ jobs:
       ECR_REPOSITORY: heart-api
 
     steps:
-      # Step 1: Checkout repository
+      
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Step 2: Build Docker image
+      
       - name: Build Docker Image
         run: |
           sudo docker build \
             -f dockerfiles/Dockerfile \
             -t heart:latest .
 
-      # Step 3: Install Trivy if missing
+     
       - name: Install Trivy
         run: |
           if ! command -v trivy >/dev/null 2>&1; then
@@ -51,7 +51,7 @@ jobs:
             echo "Trivy is already installed."
           fi
 
-      # Step 4: Scan image before pushing
+     
       - name: Trivy Image Scan
         run: |
           sudo trivy image \
@@ -60,21 +60,7 @@ jobs:
             --ignore-unfixed \
             heart:latest
 
-      # Step 5: Configure AWS credentials using CLI
-      # - name: Configure AWS CLI
-      #   if: github.event_name != 'pull_request'
-      #   env:
-      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #   run: |
-      #     sudo aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
-      #     sudo aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
-      #     sudo  aws configure set region "$AWS_REGION"
-      #     sudo aws configure set output json
-
-      #     sudo aws sts get-caller-identity
-
-      # Step 6: Get AWS account ID and ECR registry
+     
       - name: Get ECR Registry
         if: github.event_name != 'pull_request'
         run: |
@@ -86,7 +72,7 @@ jobs:
 
           echo "ECR_REGISTRY=$ECR_REGISTRY" >> "$GITHUB_ENV"
 
-      # Step 7: Login to ECR using AWS CLI
+     
       - name: Login to Amazon ECR
         if: github.event_name != 'pull_request'
         run: |
@@ -96,14 +82,14 @@ jobs:
                 --username AWS \
                 --password-stdin "$ECR_REGISTRY"
 
-      # Step 8: Tag image for ECR
+    
       - name: Tag Docker Image
         if: github.event_name != 'pull_request'
         run: |
           sudo docker tag heart:latest \
             "$ECR_REGISTRY/$ECR_REPOSITORY:${GITHUB_SHA}"
 
-      # Step 9: Push image to ECR
+     
       - name: Push Docker Image to ECR
         if: github.event_name != 'pull_request'
         run: |
