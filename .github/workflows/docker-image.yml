@@ -1,98 +1,73 @@
-name: Docker Image Building, Trivy Scan and ECR Push
+name: Build, Trivy scan and ECR push
 
+# Reusable: called by pipeline.yml. Returns the pushed image URI as an output.
+# Can also be run on its own (workflow_dispatch).
 on:
   workflow_call:
-     outputs:
-       image: 
-         description: "Full ECR image URI (registry/repo:tag) that was pushed"
-         value: ${{ jobs.build.outputs.image }}
+    outputs:
+      image:
+        description: Full ECR image URI (registry/repo:tag) that was pushed
+        value: ${{ jobs.build.outputs.image }}
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  PYTHON_VERSION: "3.14"          # keep equal to PYTHON_VERSION in dockerfiles/Dockerfile
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: heart-api
+
 jobs:
   build:
-    name: Build, Scan and Push to ECR
+    name: Build, scan, push
     runs-on: self-hosted
-
-    env:
-      AWS_REGION: ap-south-1
-      ECR_REPOSITORY: heart-api
-
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
     steps:
-      
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      
-      - name: Build Docker Image
+      - name: Build Docker image
         run: |
           sudo docker build \
             -f dockerfiles/Dockerfile \
+            --build-arg PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
             -t heart:latest .
 
-     
-      - name: Install Trivy
-        run: |
-          if ! command -v trivy >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y wget gnupg
-
-            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
-              | gpg --dearmor \
-              | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
-
-            echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" \
-              | sudo tee /etc/apt/sources.list.d/trivy.list
-
-            sudo apt-get update
-            sudo apt-get install -y trivy
-          else
-            echo "Trivy is already installed."
-          fi
-
-     
-      - name: Trivy Image Scan
+      # --exit-code 1 makes HIGH/CRITICAL findings fail the job, so a
+      # vulnerable image is never pushed
+      - name: Trivy image scan (gate)
         run: |
           sudo trivy image \
             --scanners vuln \
             --severity HIGH,CRITICAL \
             --ignore-unfixed \
-            heart:latest
+            --exit-code 1 \
+            heart:latest | tee trivy.log
 
-     
-      - name: Get ECR Registry
-        if: github.event_name != 'pull_request'
+      - name: Verify AWS identity and compute image name
+        id: meta
         run: |
-          ACCOUNT_ID=$(sudo aws sts get-caller-identity \
-            --query Account \
-            --output text)
-
+          ACCOUNT_ID=$(sudo aws sts get-caller-identity --query Account --output text)
           ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-
           echo "ECR_REGISTRY=$ECR_REGISTRY" >> "$GITHUB_ENV"
+          echo "image=${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
-     
       - name: Login to Amazon ECR
-        if: github.event_name != 'pull_request'
         run: |
-         sudo aws ecr get-login-password \
-            --region "$AWS_REGION" \
-            | sudo docker login \
-                --username AWS \
-                --password-stdin "$ECR_REGISTRY"
+          sudo aws ecr get-login-password --region "$AWS_REGION" \
+            | sudo docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
-    
-      - name: Tag Docker Image
-        if: github.event_name != 'pull_request'
+      - name: Tag and push image
         run: |
-          sudo docker tag heart:latest \
-            "$ECR_REGISTRY/$ECR_REPOSITORY:${GITHUB_SHA}"
+          sudo docker tag heart:latest "${{ steps.meta.outputs.image }}"
+          sudo docker push "${{ steps.meta.outputs.image }}"
 
-     
-      - name: Push Docker Image to ECR
-        if: github.event_name != 'pull_request'
-        run: |
-          sudo docker push \
-            "$ECR_REGISTRY/$ECR_REPOSITORY:${GITHUB_SHA}"
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy.log
+          if-no-files-found: warn
