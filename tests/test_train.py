@@ -14,10 +14,11 @@ def test_main_trains_tracks_and_exports_best_model(tmp_path, monkeypatch, make_d
     make_df(n=120).to_csv(tmp_path / "data" / "heart_clean.csv", index=False)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(train, "MODELS", {
-        "logistic_regression": (LogisticRegression(max_iter=500, random_state=0),
+        "logistic_regression": (LogisticRegression(C=1.0, max_iter=500, random_state=0),
                                 {"clf__C": [1]}),
-        "random_forest": (RandomForestClassifier(random_state=0),
-                          {"clf__n_estimators": [10]}),
+        "random_forest": (RandomForestClassifier(n_estimators=10, min_samples_leaf=1,
+                                                 max_features="sqrt", random_state=0),
+                          {"clf__n_estimators": [10], "clf__max_features": ["sqrt", "log2"]}),
     })
 
     train.main()

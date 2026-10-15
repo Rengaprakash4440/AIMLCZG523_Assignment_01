@@ -23,11 +23,12 @@ SCORING = ["accuracy", "precision", "recall", "roc_auc"]
 FIG = Path("report/figures")
 MODELS = {
     "logistic_regression": (
-        LogisticRegression(max_iter=1000, random_state=SEED),
+        LogisticRegression(C=1.0, max_iter=1000, random_state=SEED),
         {"clf__C": [0.01, 0.1, 1, 10]},
     ),
     "random_forest": (
-        RandomForestClassifier(random_state=SEED),
+        RandomForestClassifier(n_estimators=100, max_depth=None, min_samples_leaf=1,
+                               max_features="sqrt", random_state=SEED),
         {"clf__n_estimators": [100, 300],
          "clf__max_depth": [None, 5, 10],
          "clf__min_samples_leaf": [1, 3]},
