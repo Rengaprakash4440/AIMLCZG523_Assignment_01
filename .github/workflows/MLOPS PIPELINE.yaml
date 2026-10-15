@@ -20,33 +20,33 @@ concurrency:
 
 jobs:
   ml:
-    name: 1. ML pipeline
-    uses: ./.github/workflows/pipelines/ml_pipeline.yml
+    name: ML pipeline
+    uses: ./.github/workflows/ml_pipeline.yml
 
   quality:
-    name: 2. SonarQube and Checkov
+    name: SonarQube and Checkov
     needs: ml
     if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/quality-security.yml
+    uses: ./.github/workflows/sonarqube.yaml
 
   build:
-    name: 3. Build, Trivy, ECR push
+    name: Build, Trivy, ECR push
     needs: quality
     if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/build-push.yml
+    uses: ./.github/docker-image.yml
 
   deploy:
-    name: 4. Deploy to EKS
+    name: Deploy to EKS
     needs: build
     if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/pipelines/kubernetes.yaml
+    uses: ./.github/workflows/kubernetes.yaml
     with:
       image: ${{ needs.build.outputs.image }}
 
   zap:
-    name: 5. OWASP ZAP scans
+    name: OWASP ZAP scans
     needs: deploy
     if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/pipelines/zap-scan.yml
+    uses: ./.github/workflows/zap-scan.yml
     with:
       url: ${{ needs.deploy.outputs.url }}
