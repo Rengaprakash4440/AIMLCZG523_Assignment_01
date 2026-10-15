@@ -37,7 +37,7 @@ jobs:
 
   deploy:
     name: Deploy to EKS
-    needs: [ml, quality, build]
+    needs: [build]
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/kubernetes.yaml
     with:
@@ -45,7 +45,7 @@ jobs:
 
   zap:
     name: OWASP ZAP scans
-    needs: [ml, quality, build, deploy]
+    needs: [deploy]
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/zap.yml
     with:
