@@ -47,6 +47,6 @@ jobs:
     name: OWASP ZAP scans
     needs: deploy
     if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/zap-scan.yml
+    uses: ./.github/workflows/zap.yml
     with:
       url: ${{ needs.deploy.outputs.url }}
