@@ -33,7 +33,7 @@ jobs:
     name: Build, Trivy, ECR push
     needs: quality
     if: github.event_name != 'pull_request'
-    uses: ./.github/docker-image.yml
+    uses: ./.github/workflows/docker-image.yml
 
   deploy:
     name: Deploy to EKS
