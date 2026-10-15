@@ -25,19 +25,19 @@ jobs:
 
   quality:
     name: SonarQube and Checkov
-    needs: ml
+    needs: [ml]
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/sonarqube.yaml
 
   build:
     name: Build, Trivy, ECR push
-    needs: ml,quality
+    needs: [ml, quality]
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/docker-image.yml
 
   deploy:
     name: Deploy to EKS
-    needs: ml,quality,build
+    needs: [ml, quality, build]
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/kubernetes.yaml
     with:
@@ -45,7 +45,7 @@ jobs:
 
   zap:
     name: OWASP ZAP scans
-    needs: build,deploy
+    needs: [ml, quality, build, deploy]
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/zap.yml
     with:
