@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import time
@@ -7,7 +8,8 @@ from typing import Optional
 import joblib
 import pandas as pd
 from fastapi import FastAPI, Request, Response
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Gauge, Histogram,
+                               generate_latest)
 from pydantic import BaseModel, Field
 
 from src.data import FEATURES
@@ -24,9 +26,50 @@ REQUESTS = Counter("api_requests_total", "Total API requests", ["method", "endpo
 LATENCY = Histogram("api_request_latency_seconds", "Request latency", ["endpoint"])
 PREDICTIONS = Counter("predictions_total", "Predictions by class", ["label"])
 
+# ML metrics
+PROB_BUCKETS = [i / 10 for i in range(1, 10)] + [1.0]
+CONF_BUCKETS = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0]
+FEATURE_BUCKETS = {
+    "age": [30, 40, 50, 60, 70, 80],
+    "trestbps": [100, 120, 140, 160, 180, 200],
+    "chol": [150, 200, 250, 300, 350, 400],
+    "thalach": [100, 120, 140, 160, 180, 200],
+    "oldpeak": [0, 0.5, 1, 2, 3, 4, 6],
+}
+MODEL_INFO = Gauge("ml_model_info", "Deployed model (value is always 1)", ["model"])
+MODEL_METRIC = Gauge("ml_model_test_metric", "Hold-out test metric of the deployed model",
+                     ["model", "metric"])
+PROBABILITY = Histogram("ml_prediction_probability", "Predicted probability of heart disease",
+                        buckets=PROB_BUCKETS)
+CONFIDENCE = Histogram("ml_prediction_confidence", "Confidence of the predicted class",
+                       buckets=CONF_BUCKETS)
+INFERENCE = Histogram("ml_inference_seconds", "Model inference time",
+                      buckets=[0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25])
+INPUT_FEATURE = {
+    name: Histogram(f"ml_input_{name}", f"Distribution of input feature {name}", buckets=b)
+    for name, b in FEATURE_BUCKETS.items()
+}
+MISSING_INPUT = Counter("ml_missing_input_total", "Optional inputs sent as null", ["feature"])
+
 app = FastAPI(title="Heart Disease Risk API", version="1.0.0")
 model = joblib.load(MODEL_PATH)
 log.info("Loaded model from %s", MODEL_PATH)
+
+
+def load_model_metrics(path: Path) -> None:
+    meta_path = path.parent / "metadata.json"
+    if not meta_path.exists():
+        log.warning("No metadata.json next to model; skipping model metrics")
+        return
+    meta = json.loads(meta_path.read_text())
+    name = meta.get("model", "unknown")
+    MODEL_INFO.labels(name).set(1)
+    for key, value in meta.get("test_metrics", {}).items():
+        MODEL_METRIC.labels(name, key.removeprefix("test_")).set(float(value))
+    log.info("Exported %d test metrics for model %s", len(meta.get("test_metrics", {})), name)
+
+
+load_model_metrics(MODEL_PATH)
 
 
 class Patient(BaseModel):
@@ -71,11 +114,21 @@ def health():
 
 @app.post("/predict")
 def predict(patient: Patient):
-    df = pd.DataFrame([patient.model_dump()])[FEATURES].astype(float)  # None -> NaN
+    data = patient.model_dump()
+    df = pd.DataFrame([data])[FEATURES].astype(float)  # None -> NaN
+    start = time.perf_counter()
     p_disease = float(model.predict_proba(df)[0, 1])
+    INFERENCE.observe(time.perf_counter() - start)
     prediction = int(p_disease >= 0.5)
     confidence = p_disease if prediction else 1 - p_disease
     PREDICTIONS.labels(str(prediction)).inc()
+    PROBABILITY.observe(p_disease)
+    CONFIDENCE.observe(confidence)
+    for name, hist in INPUT_FEATURE.items():
+        hist.observe(data[name])
+    for name in ("ca", "thal"):
+        if data[name] is None:
+            MISSING_INPUT.labels(name).inc()
     log.info("prediction=%d confidence=%.3f", prediction, confidence)
     return {
         "prediction": prediction,
