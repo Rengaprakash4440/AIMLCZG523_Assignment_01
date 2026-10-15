@@ -1,0 +1,107 @@
+name: Kubernetes Deployments
+
+on:
+  workflow_call:
+     inputs:
+       image:
+         description: "Full ECR image URI (registry/repo:tag) to deploy"
+         required: true
+         type: string
+     outputs:
+       image:
+         description: Public load balancer URL of the API
+         value: ${{ jobs.deploy.outputs.url }}
+  workflow_dispatch:
+     inputs:
+       image:
+         description: "Full ECR image URI (registry/repo:tag) to deploy"
+         required: true
+         type: string
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  EKS_CLUSTER_NAME: heart-mlops
+  K8S_NAMESPACE: heartbeat-api
+
+jobs:
+  deploy:
+    name: Configure AWS and Kubernetes
+    runs-on: self-hosted
+    environment:
+      name: prod  
+      url: ${{ steps.url.outputs.url }}
+    outputs:
+      url:
+        description: Public load balancer URL of the API
+        value: ${{ steps.url.outputs.url }}
+    steps:
+
+      - name: Verify CLI Tools
+        run: |
+          sudo aws --version
+          sudo kubectl version --client
+
+     
+      - name: Kubernetes Setup
+        run: |
+          sudo aws eks update-kubeconfig \
+            --region "$AWS_REGION" \
+            --name "$EKS_CLUSTER_NAME"
+
+     
+      - name: Verify Kubernetes Cluster
+        run: |
+          sudo kubectl cluster-info
+          sudo kubectl get nodes
+
+      - name:  Apply manifests with the freshly built image
+        env:
+          IMAGE: ${{ inputs.image }}
+        run: |
+          sudo kubectl apply -f kubernetes/namespaces.yaml
+          sudo sed "s|image: .*|image: ${IMAGE}|" kubernetes/deployment.yaml | sudo kubectl apply -f -
+          sudo kubectl apply -f kubernetes/service.yaml
+          sudo kubectl apply -f kubernetes/network-policy.yaml
+
+      - name: Wait for rollout
+        run: sudo kubectl -n "$K8S_NAMESPACE" rollout status deployment/heart-api --timeout=180s
+      
+      - name: Get service URL
+        run: |
+          sudo kubectl -n "$K8S_NAMESPACE" get svc heart-api -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+        id: get-url
+
+      - name: Output service URL
+        run: echo "Service URL: ${{ steps.get-url.outputs.stdout }}"
+        id: output-url
+        outputs:
+          url: ${{ steps.get-url.outputs.stdout }}
+      
+      - name: Wait for rollout
+        run: sudo kubectl -n "$K8S_NAMESPACE" rollout status deployment/heart-api --timeout=180s
+      
+      - name: smoke test
+        id: url
+        run: |
+          HOST=""
+          for i in $(seq 1 30); do
+            HOST=$(sudo kubectl -n "$K8S_NAMESPACE" get svc heart-api \
+              -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            [ -n "$HOST" ] && break
+            sleep 10
+          done
+          [ -n "$HOST" ] || { echo "Load balancer hostname not ready"; exit 1; }
+ 
+          for i in $(seq 1 30); do
+            curl -sf "http://$HOST/health" && break
+            sleep 5
+          done
+          curl -sf "http://$HOST/health"
+          echo "url=http://$HOST" >> "$GITHUB_OUTPUT"
+      
+      - name: Roll back on failure
+        if: failure()
+        run: sudo kubectl -n "$K8S_NAMESPACE" rollout undo deployment/heart-api

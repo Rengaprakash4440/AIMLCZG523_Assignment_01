@@ -1,10 +1,11 @@
 name: Docker Image Building, Trivy Scan and ECR Push
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  workflow_call:
+     outputs:
+       image: 
+         description: "Full ECR image URI (registry/repo:tag) that was pushed"
+         value: ${{ jobs.build.outputs.image }}
   workflow_dispatch:
 
 permissions:

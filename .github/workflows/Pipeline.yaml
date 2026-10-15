@@ -1,0 +1,52 @@
+name: MLOps Pipeline
+
+# Orchestrator. Calls the separate workflow files in order:
+#   ml-pipeline -> quality-security -> build-push -> deploy -> zap-scan
+# Pull requests run only the ML job; everything that touches the self-hosted
+# VM, ECR or EKS runs on push to main or manual dispatch.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mlops-pipeline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ml:
+    name: 1. ML pipeline
+    uses: ./.github/workflows/ml-pipeline.yml
+
+  quality:
+    name: 2. SonarQube and Checkov
+    needs: ml
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/quality-security.yml
+
+  build:
+    name: 3. Build, Trivy, ECR push
+    needs: quality
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/build-push.yml
+
+  deploy:
+    name: 4. Deploy to EKS
+    needs: build
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      image: ${{ needs.build.outputs.image }}
+
+  zap:
+    name: 5. OWASP ZAP scans
+    needs: deploy
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/zap-scan.yml
+    with:
+      url: ${{ needs.deploy.outputs.url }}

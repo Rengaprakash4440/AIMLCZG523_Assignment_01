@@ -1,0 +1,82 @@
+name: OWASP ZAP scans
+
+# Reusable: called by pipeline.yml with the load balancer URL from the deploy
+# workflow. Can also be run on its own: choose "Run workflow" and paste a URL
+# such as http://<elb-hostname>.
+on:
+  workflow_call:
+    inputs:
+      url:
+        description: Base URL of the deployed API
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Base URL of the deployed API
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  zap:
+    name: API and baseline scans
+    runs-on: self-hosted
+    env:
+      TARGET: ${{ inputs.url }}
+    steps:
+      - name: Prepare report folder
+        run: mkdir -p zap-reports && chmod 777 zap-reports
+
+      - name: Wait for the endpoint
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf "$TARGET/health" && break
+            sleep 5
+          done
+          curl -sf "$TARGET/openapi.json" > /dev/null
+
+      - name: ZAP API scan (OpenAPI)
+        run: |
+          sudo docker run --rm -v "$PWD/zap-reports:/zap/wrk:rw" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-api-scan.py -t "$TARGET/openapi.json" -f openapi \
+            -r api-scan.html -J api-scan.json -I
+
+      - name: ZAP baseline scan (passive)
+        run: |
+          sudo docker run --rm -v "$PWD/zap-reports:/zap/wrk:rw" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t "$TARGET" -m 3 -T 5 \
+            -r baseline.html -J baseline.json -I
+
+      - name: Gate on high-risk alerts
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+          names = {"3": "High", "2": "Medium", "1": "Low", "0": "Info"}
+          high = 0
+          for f in ("zap-reports/api-scan.json", "zap-reports/baseline.json"):
+              data = json.load(open(f))
+              print(f"== {f}")
+              for site in data.get("site", []):
+                  for a in site.get("alerts", []):
+                      risk = a["riskcode"]
+                      print(f"  [{names.get(risk, risk)}] {a['name']} ({a.get('count', '?')} instances)")
+                      if risk == "3":
+                          high += 1
+          if high:
+              print(f"FAIL: {high} high-risk alert type(s)")
+              sys.exit(1)
+          print("PASS: no high-risk alerts")
+          EOF
+
+      - name: Upload ZAP reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-zap-reports
+          path: zap-reports/
+          if-no-files-found: warn
+          retention-days: 7

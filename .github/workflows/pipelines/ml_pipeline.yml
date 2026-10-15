@@ -1,9 +1,8 @@
-name: CIs
+name: ML Pipeline
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_call:
+  workflow_dispatch:
 
 env:
   PYTHON_VERSION: "3.14"   
