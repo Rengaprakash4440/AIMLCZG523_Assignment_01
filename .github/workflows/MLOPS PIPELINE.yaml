@@ -45,7 +45,7 @@ jobs:
 
   zap:
     name: OWASP ZAP scans
-    needs: ml,quality,build,deploy
+    needs: build,deploy
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/zap.yml
     with:
