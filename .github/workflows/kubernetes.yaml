@@ -1,22 +1,24 @@
-name: Kubernetes Deployments
+name: Deploy to EKS
 
+# Reusable: called by pipeline.yml with the image built earlier. Returns the
+# load balancer URL as an output. Can also be run on its own: choose
+# "Run workflow" and paste a full ECR image URI.
 on:
   workflow_call:
-     inputs:
-       image:
-         description: "Full ECR image URI (registry/repo:tag) to deploy"
-         required: true
-         type: string
-     outputs:
-       image:
-         description: Public load balancer URL of the API
-         value: ${{ jobs.deploy.outputs.url }}
+    inputs:
+      image:
+        description: Full ECR image URI (registry/repo:tag)
+        type: string
+        required: true
+    outputs:
+      url:
+        description: Public load balancer URL of the API
+        value: ${{ jobs.deploy.outputs.url }}
   workflow_dispatch:
-     inputs:
-       image:
-         description: "Full ECR image URI (registry/repo:tag) to deploy"
-         required: true
-         type: string
+    inputs:
+      image:
+        description: Full ECR image URI (registry/repo:tag)
+        required: true
 
 permissions:
   contents: read
@@ -28,56 +30,37 @@ env:
 
 jobs:
   deploy:
-    name: Configure AWS and Kubernetes
+    name: Deploy and smoke test
     runs-on: self-hosted
+    # Manual approval: the job waits here until a required reviewer approves
+    # the "production" environment (Settings -> Environments).
     environment:
-      name: prod  
+      name: production
       url: ${{ steps.url.outputs.url }}
     outputs:
-      url:
-        description: Public load balancer URL of the API
-        value: ${{ steps.url.outputs.url }}
+      url: ${{ steps.url.outputs.url }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Verify CLI Tools
+      - name: Configure kubeconfig
         run: |
-          sudo aws --version
-          sudo kubectl version --client
-
-     
-      - name: Kubernetes Setup
-        run: |
-          sudo aws eks update-kubeconfig \
-            --region "$AWS_REGION" \
-            --name "$EKS_CLUSTER_NAME"
-
-     
-      - name: Verify Kubernetes Cluster
-        run: |
-          sudo kubectl cluster-info
+          sudo aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
           sudo kubectl get nodes
 
-      - name:  Apply manifests with the freshly built image
+      - name: Apply manifests with the freshly built image
         env:
           IMAGE: ${{ inputs.image }}
         run: |
           sudo kubectl apply -f kubernetes/namespaces.yaml
-          sudo sed "s|image: .*|image: ${IMAGE}|" kubernetes/deployment.yaml | sudo kubectl apply -f -
+          sed "s|image: .*|image: ${IMAGE}|" kubernetes/deployment.yaml | sudo kubectl apply -f -
           sudo kubectl apply -f kubernetes/service.yaml
           sudo kubectl apply -f kubernetes/network-policy.yaml
 
       - name: Wait for rollout
         run: sudo kubectl -n "$K8S_NAMESPACE" rollout status deployment/heart-api --timeout=180s
-      
-      - name: Get service URL
-        run: |
-          sudo kubectl -n "$K8S_NAMESPACE" get svc heart-api -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-        id: get-url
-        
-      - name: Wait for rollout
-        run: sudo kubectl -n "$K8S_NAMESPACE" rollout status deployment/heart-api --timeout=180s
-      
-      - name: smoke test
+
+      - name: Get load balancer URL and smoke test
         id: url
         run: |
           HOST=""
@@ -88,14 +71,14 @@ jobs:
             sleep 10
           done
           [ -n "$HOST" ] || { echo "Load balancer hostname not ready"; exit 1; }
- 
+
           for i in $(seq 1 30); do
             curl -sf "http://$HOST/health" && break
             sleep 5
           done
           curl -sf "http://$HOST/health"
           echo "url=http://$HOST" >> "$GITHUB_OUTPUT"
-      
+
       - name: Roll back on failure
         if: failure()
         run: sudo kubectl -n "$K8S_NAMESPACE" rollout undo deployment/heart-api
