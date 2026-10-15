@@ -20,28 +20,14 @@ jobs:
       EKS_CLUSTER_NAME: heart-mlops
 
     steps:
-      # Step 1: Configure AWS credentials
-      - name: Configure AWS CLI
-        if: github.event_name != 'pull_request'
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          sudo aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
-          sudo aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
-          sudo aws configure set region "$AWS_REGION"
-          sudo aws configure set output json
 
-          sudo aws sts get-caller-identity
-
-      # Step 2: Verify AWS CLI and kubectl
       - name: Verify CLI Tools
         if: github.event_name != 'pull_request'
         run: |
           sudo aws --version
           sudo kubectl version --client
 
-      # Step 3: Configure EKS kubeconfig
+     
       - name: Kubernetes Setup
         if: github.event_name != 'pull_request'
         run: |
@@ -49,7 +35,7 @@ jobs:
             --region "$AWS_REGION" \
             --name "$EKS_CLUSTER_NAME"
 
-      # Step 4: Verify Kubernetes connection
+     
       - name: Verify Kubernetes Cluster
         if: github.event_name != 'pull_request'
         run: |
@@ -68,7 +54,7 @@ jobs:
       - name: Pull OWASP ZAP Docker Image
         run: sudo docker pull ghcr.io/zaproxy/zaproxy:stable
 
-      # Step 9: Verify target URL
+      
       - name: Verify Application URL
         env:
           TARGET_URL: ${{ vars.ZAP_TARGET_URL }}
