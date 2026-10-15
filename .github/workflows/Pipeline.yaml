@@ -21,7 +21,7 @@ concurrency:
 jobs:
   ml:
     name: 1. ML pipeline
-    uses: ./.github/workflows/ml-pipeline.yml
+    uses: ./.github/workflows/pipelines/ml_pipeline.yml
 
   quality:
     name: 2. SonarQube and Checkov
@@ -39,7 +39,7 @@ jobs:
     name: 4. Deploy to EKS
     needs: build
     if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/deploy.yml
+    uses: ./.github/workflows/pipelines/kubernetes.yaml
     with:
       image: ${{ needs.build.outputs.image }}
 
@@ -47,6 +47,6 @@ jobs:
     name: 5. OWASP ZAP scans
     needs: deploy
     if: github.event_name != 'pull_request'
-    uses: ./.github/workflows/zap-scan.yml
+    uses: ./.github/workflows/pipelines/zap-scan.yml
     with:
       url: ${{ needs.deploy.outputs.url }}
