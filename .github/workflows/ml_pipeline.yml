@@ -25,7 +25,7 @@ jobs:
         run: flake8 src tests | tee flake8.log
 
       - name: Unit tests (pytest)
-        run: pytest -v --junitxml=pytest-report.xml
+        run: pytest -v --junitxml=pytest-report.xml --cov=src --cov-report=xml --cov-report=term-missing
 
       - name: Dataset preparation
         run: |
@@ -61,6 +61,14 @@ jobs:
           python -m src.train > /dev/null 2>&1
           diff /tmp/metadata_run1.json models/metadata.json && echo "Two seeded runs gave identical results"
 
+      - name: Upload coverage report for SonarQube
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          if-no-files-found: error
+
       - name: Upload reports and ML artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,6 +77,7 @@ jobs:
           path: |
             flake8.log
             pytest-report.xml
+            coverage.xml
             models/
             data/heart_clean.csv
             report/executed_eda.ipynb
