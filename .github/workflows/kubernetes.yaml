@@ -73,13 +73,7 @@ jobs:
         run: |
           sudo kubectl -n "$K8S_NAMESPACE" get svc heart-api -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
         id: get-url
-
-      - name: Output service URL
-        run: echo "Service URL: ${{ steps.get-url.outputs.stdout }}"
-        id: output-url
-        outputs:
-          url: ${{ steps.get-url.outputs.stdout }}
-      
+        
       - name: Wait for rollout
         run: sudo kubectl -n "$K8S_NAMESPACE" rollout status deployment/heart-api --timeout=180s
       
