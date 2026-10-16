@@ -372,18 +372,6 @@ Helm values in `monitoring/` allow an in-cluster installation instead (`promethe
 
 Reports are uploaded as run artifacts. Accepted findings should be documented in the report with a reason rather than silently skipped.
 
-## Troubleshooting
-
-| Symptom | Likely cause and fix |
-|---|---|
-| `ModuleNotFoundError: No module named 'src'` | run commands from the project root; in the notebook, the first cell locates the root automatically |
-| MLflow fails with an untrusted-types (`skops`) error | log the model with `serialization_format="cloudpickle"` (already set in `src/train.py`) |
-| Model fails to load in the container | the container Python version differs from the training version; set the `PYTHON_VERSION` build argument to match |
-| EKS node group fails to create | the account may not allow the chosen instance type; list allowed types and pick another |
-| `curl: Could not resolve host` on a new ELB | wait a few minutes for DNS, then retry; check `kubectl get endpoints` |
-| `workflows must be defined at the top level` | reusable workflows must sit directly in `.github/workflows/`, not in a subfolder |
-| `no version specified` for a `uses:` line | local reusable workflow paths must start with `./.github/workflows/` and match the filename exactly |
-| `kubectl` returns Unauthorized in CI | add the runner's IAM role to the cluster with an EKS access entry |
 
 ## Limitations and future work
 
