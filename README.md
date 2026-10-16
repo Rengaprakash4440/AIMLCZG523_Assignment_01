@@ -83,12 +83,12 @@ Training and serving share one fitted scikit-learn `Pipeline` (imputation, scali
 ```
 .
 ├── .github/workflows/
-│   ├── pipeline.yml            # orchestrator: calls the five stage workflows in order
-│   ├── ml-pipeline.yml         # stage 1: lint, tests, dataset, EDA, training, MLflow, reproducibility
-│   ├── quality-security.yml    # stage 2: SonarQube + Checkov
-│   ├── build-push.yml          # stage 3: Docker build, Trivy gate, ECR push
-│   ├── deploy.yml              # stage 4: approval, EKS rollout, smoke test, rollback
-│   └── zap-scan.yml            # stage 5: OWASP ZAP API + baseline scans
+│   ├── MlOps_pipeline.yml            # orchestrator: calls the five stage workflows in order
+│   ├── ml_pipeline.yml         # stage 1: lint, tests, dataset, EDA, training, MLflow, reproducibility
+│   ├── sonarqube.yaml    # stage 2: SonarQube + Checkov
+│   ├── docker-image.yml          # stage 3: Docker build, Trivy gate, ECR push
+│   ├── kubernetes.yml              # stage 4: approval, EKS rollout, smoke test, rollback
+│   └── zap.yml            # stage 5: OWASP ZAP API + baseline scans
 ├── data/
 │   ├── heart_raw.csv           # as downloaded from UCI
 │   └── heart_clean.csv         # cleaned, binary target
@@ -250,7 +250,7 @@ curl -X POST http://localhost:8000/predict \
 ## Testing
 
 ```bash
-pytest -v           # 17 tests, run on synthetic data (no MLflow or real model needed)
+pytest -v           # 22 tests, run on synthetic data (no MLflow or real model needed)
 flake8 src tests    # lint
 ```
 
