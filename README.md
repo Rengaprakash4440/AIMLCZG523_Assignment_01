@@ -279,11 +279,11 @@ The image uses `python:3.14-slim`, installs only `requirements-api.txt`, runs as
 
 | Stage | Workflow | Runner | What it does | Fails when |
 |---|---|---|---|---|
-| 1 ML pipeline | `ml-pipeline.yml` | GitHub-hosted | flake8, pytest, dataset re-creation, EDA notebook run, training with MLflow, model comparison, two-run reproducibility check | lint or test error, notebook error, data or results differ between runs |
-| 2 Quality and security | `quality-security.yml` | self-hosted VM | SonarQube scan and quality gate, Checkov on Dockerfile and manifests | quality gate or policy failure |
-| 3 Build | `build-push.yml` | self-hosted VM | Docker build, Trivy scan, push to ECR tagged with the commit SHA | HIGH or CRITICAL fixable vulnerabilities |
-| 4 Deploy | `deploy.yml` | self-hosted VM | manual approval, `kubectl apply`, rollout wait, `/health` smoke test, auto rollback | approval rejected, rollout timeout, failed smoke test |
-| 5 ZAP | `zap-scan.yml` | self-hosted VM | OWASP ZAP API scan from `/openapi.json` plus passive baseline scan | high-risk alert found |
+| 1 ML pipeline | `ml_pipeline.yml` | GitHub-hosted | flake8, pytest, dataset re-creation, EDA notebook run, training with MLflow, model comparison, two-run reproducibility check | lint or test error, notebook error, data or results differ between runs |
+| 2 Quality and security | `sonarqube.yaml` | self-hosted VM | SonarQube scan and quality gate, Checkov on Dockerfile and manifests | quality gate or policy failure |
+| 3 Build | `docker-image.yml` | self-hosted VM | Docker build, Trivy scan, push to ECR tagged with the commit SHA | HIGH or CRITICAL fixable vulnerabilities |
+| 4 Deploy | `kubernetes.yaml` | self-hosted VM | manual approval, `kubectl apply`, rollout wait, `/health` smoke test, auto rollback | approval rejected, rollout timeout, failed smoke test |
+| 5 ZAP | `zap.yml` | self-hosted VM | OWASP ZAP API scan from `/openapi.json` plus passive baseline scan | high-risk alert found |
 
 Every stage uploads its evidence as a run artifact (test reports, models, figures, MLflow database, Trivy and ZAP reports), found at the bottom of each run page in the **Actions** tab.
 
