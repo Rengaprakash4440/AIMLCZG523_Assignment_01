@@ -83,11 +83,11 @@ Training and serving share one fitted scikit-learn `Pipeline` (imputation, scali
 ```
 .
 ├── .github/workflows/
-│   ├── MlOps_pipeline.yml            # orchestrator: calls the five stage workflows in order
+│   ├── MlOps_pipeline.yaml            # orchestrator: calls the five stage workflows in order
 │   ├── ml_pipeline.yml         # stage 1: lint, tests, dataset, EDA, training, MLflow, reproducibility
 │   ├── sonarqube.yaml    # stage 2: SonarQube + Checkov
 │   ├── docker-image.yml          # stage 3: Docker build, Trivy gate, ECR push
-│   ├── kubernetes.yml              # stage 4: approval, EKS rollout, smoke test, rollback
+│   ├── kubernetes.yaml              # stage 4: approval, EKS rollout, smoke test, rollback
 │   └── zap.yml            # stage 5: OWASP ZAP API + baseline scans
 ├── data/
 │   ├── heart_raw.csv           # as downloaded from UCI
@@ -117,7 +117,7 @@ Training and serving share one fitted scikit-learn `Pipeline` (imputation, scali
 │   ├── features.py             # ColumnTransformer preprocessing
 │   ├── train.py                # training, tuning, MLflow logging
 │   └── app.py                  # FastAPI service with metrics and logging
-├── tests/                      # 17 pytest tests
+├── tests/                      # 22 pytest tests
 ├── requirements.txt            # development and CI dependencies
 ├── requirements-api.txt        # pinned runtime dependencies for the image
 ├── sonar-project.properties
