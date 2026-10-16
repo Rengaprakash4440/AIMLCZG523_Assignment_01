@@ -1,14 +1,9 @@
-persistence:
-  enabled: false
-resources:
-  requests: {cpu: 50m, memory: 128Mi}
-  limits: {memory: 256Mi}
+apiVersion: 1
+
 datasources:
-  datasources.yaml:
-    apiVersion: 1
-    datasources:
-      - name: Prometheus
-        type: prometheus
-        url: http://prometheus-server.monitoring.svc.cluster.local
-        access: proxy
-        isDefault: true
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://localhost:9090
+    isDefault: true
+    editable: true
