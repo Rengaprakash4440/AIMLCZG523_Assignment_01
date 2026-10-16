@@ -5,3 +5,4 @@ mlruns/
 .ipynb_checkpoints/
 mlflow.db
 mlruns/
+.DS_Store
