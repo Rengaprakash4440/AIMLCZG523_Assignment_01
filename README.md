@@ -10,6 +10,8 @@
 
 A machine learning classifier that predicts the risk of heart disease from patient health data, built and shipped with modern MLOps practice: reproducible training, experiment tracking, automated tests and security scans, a container image, a Kubernetes deployment on AWS EKS, and live monitoring with Prometheus and Grafana.
 
+> **Course:** BITS Pilani M.Tech AIML (WILP), Machine Learning Operations (MLOps) AIMLCZG523, Assignment 01.
+> **Note:** this model is an academic exercise on a small public dataset. It is not a clinical tool.
 
 ## Contents
 
@@ -27,19 +29,20 @@ A machine learning classifier that predicts the risk of heart disease from patie
 12. [Kubernetes deployment on EKS](#kubernetes-deployment-on-eks)
 13. [Monitoring and logging](#monitoring-and-logging)
 14. [Security scanning](#security-scanning)
-15. [Troubleshooting](#troubleshooting)
-16. [Limitations and future work](#limitations-and-future-work)
-17. [Deliverables checklist](#deliverables-checklist)
+15. [Evidence](#evidence)
+16. [Troubleshooting](#troubleshooting)
+17. [Limitations and future work](#limitations-and-future-work)
+18. [Deliverables checklist](#deliverables-checklist)
 
 ## Results at a glance
 
 | | Logistic Regression (selected) | Random Forest |
 |---|---|---|
-| CV ROC-AUC (5-fold) | 0.903 | 0.902 |
+| CV ROC-AUC (5-fold) | 0.902 | 0.902 |
 | Test accuracy | 0.885 | 0.869 |
 | Test precision | 0.839 | 0.833 |
 | Test recall | **0.929** | 0.893 |
-| Test ROC-AUC | **0.966** | 0.947 |
+| Test ROC-AUC | **0.966** | 0.948 |
 
 Logistic Regression was chosen for its higher test recall (a missed patient is the costly error in screening), calibrated probabilities for the API's confidence value, and simplicity. The test split has only 61 patients, so the gap between the models is within noise; see [Modelling](#modelling).
 
@@ -67,7 +70,7 @@ flowchart LR
   end
   subgraph AWS["4. AWS ap-south-1"]
     J[Amazon ECR] --> K{{Manual approval}}
-    K --> L[EKS: Deployment x2 + LoadBalancer Service]
+    K --> L[EKS: Deployment + LoadBalancer Service]
   end
   E -- push to main --> F
   I --> J
@@ -83,12 +86,12 @@ Training and serving share one fitted scikit-learn `Pipeline` (imputation, scali
 ```
 .
 ├── .github/workflows/
-│   ├── MlOps_pipeline.yaml            # orchestrator: calls the five stage workflows in order
+│   ├── MLOps_pipeline.yaml     # orchestrator: calls the five stage workflows in order
 │   ├── ml_pipeline.yml         # stage 1: lint, tests, dataset, EDA, training, MLflow, reproducibility
-│   ├── sonarqube.yaml    # stage 2: SonarQube + Checkov
-│   ├── docker-image.yml          # stage 3: Docker build, Trivy gate, ECR push
-│   ├── kubernetes.yaml              # stage 4: approval, EKS rollout, smoke test, rollback
-│   └── zap.yml            # stage 5: OWASP ZAP API + baseline scans
+│   ├── sonarqube.yaml          # stage 2: SonarQube + Checkov
+│   ├── docker-image.yml        # stage 3: Docker build, Trivy gate, ECR push
+│   ├── kubernetes.yaml         # stage 4: approval, EKS rollout, smoke test, rollback
+│   └── zap.yml                 # stage 5: OWASP ZAP API + baseline scans
 ├── data/
 │   ├── heart_raw.csv           # as downloaded from UCI
 │   └── heart_clean.csv         # cleaned, binary target
@@ -96,7 +99,7 @@ Training and serving share one fitted scikit-learn `Pipeline` (imputation, scali
 │   └── Dockerfile              # non-root, health-checked API image
 ├── kubernetes/
 │   ├── namespaces.yaml
-│   ├── deployment.yaml         # 2 replicas, probes, limits, hardened securityContext
+│   ├── deployment.yaml         # replicas, probes, limits, hardened securityContext
 │   ├── service.yaml            # type LoadBalancer
 │   └── network-policy.yaml
 ├── models/
@@ -250,9 +253,11 @@ curl -X POST http://localhost:8000/predict \
 ## Testing
 
 ```bash
-pytest -v           # 22 tests, run on synthetic data (no MLflow or real model needed)
+pytest -v           # 22 tests with coverage, run on synthetic data (no MLflow or real model needed)
 flake8 src tests    # lint
 ```
+
+`pytest-cov` reports 98% line coverage of `src/` (193 statements, 4 missed); the coverage report is passed to SonarQube in the pipeline.
 
 | File | Tests | Covers |
 |---|---|---|
@@ -260,6 +265,7 @@ flake8 src tests    # lint
 | `tests/test_features.py` | 3 | no missing values after preprocessing, scaling, unseen categories |
 | `tests/test_model.py` | 4 | valid probabilities, missing inputs at inference, save/load round trip, beats chance |
 | `tests/test_api.py` | 6 | health, prediction and confidence, optional fields, range validation, required fields, metrics |
+| `tests/test_download_data.py`, `tests/test_train.py` | 5 | download script and training entry point |
 
 ## Docker
 
@@ -275,7 +281,7 @@ The image uses `python:3.14-slim`, installs only `requirements-api.txt`, runs as
 
 ## CI/CD pipeline
 
-`pipeline.yml` is the orchestrator. It calls five reusable workflows in order, and each stage depends on the one before it. Pull requests run stage 1 only; stages 2 to 5 run on pushes to `main` or manual dispatch.
+`MLOps_pipeline.yaml` is the orchestrator. It calls five reusable workflows in order, and each stage depends on the one before it. Pull requests run stage 1 only; stages 2 to 5 run on pushes to `main` or manual dispatch.
 
 | Stage | Workflow | Runner | What it does | Fails when |
 |---|---|---|---|---|
@@ -287,7 +293,7 @@ The image uses `python:3.14-slim`, installs only `requirements-api.txt`, runs as
 
 Every stage uploads its evidence as a run artifact (test reports, models, figures, MLflow database, Trivy and ZAP reports), found at the bottom of each run page in the **Actions** tab.
 
-**Running a single stage:** each stage workflow also supports manual dispatch (Actions, choose the workflow, Run workflow). `deploy.yml` asks for a full ECR image URI and `zap-scan.yml` asks for the API base URL.
+**Running a single stage:** each stage workflow also supports manual dispatch (Actions, choose the workflow, Run workflow). `kubernetes.yaml` asks for a full ECR image URI and `zap.yml` asks for the API base URL.
 
 **One-time setup**
 
@@ -325,7 +331,7 @@ export URL=$(kubectl -n heartbeat-api get svc heart-api -o jsonpath='{.status.lo
 curl http://$URL/health
 ```
 
-**What the manifests set up:** namespace `heartbeat-api`; 2 replicas with readiness and liveness probes on `/health`; CPU and memory requests and limits; a hardened security context (non-root user, read-only root filesystem, no privilege escalation, all capabilities dropped, no service account token); a `LoadBalancer` service on port 80; and a network policy.
+**What the manifests set up:** namespace `heartbeat-api`; several replicas (five were running when the evidence was captured) with readiness and liveness probes on `/health`; CPU and memory requests and limits; a hardened security context (non-root user, read-only root filesystem, no privilege escalation, all capabilities dropped, no service account token); a `LoadBalancer` service on port 80; and a network policy.
 
 > **Cost:** an EKS cluster bills by the hour. Delete it as soon as the screenshots and video are captured:
 > ```bash
@@ -345,6 +351,7 @@ curl http://$URL/health
 | `api_requests_total` | counter | method, endpoint, status |
 | `api_request_latency_seconds` | histogram | endpoint |
 | `predictions_total` | counter | label |
+| model-level metrics | gauges, histograms | hold-out test metrics, predicted-probability distribution, mean confidence, inference latency, share of positive predictions, mean of key inputs (drift check) |
 
 **Prometheus and Grafana** run on a separate VM so monitoring survives a cluster rebuild. Add this job to `prometheus.yml`:
 
@@ -357,7 +364,7 @@ scrape_configs:
       - targets: ["<ELB-HOSTNAME>:80"]
 ```
 
-In Grafana, add Prometheus as a data source, then **Dashboards, New, Import** and upload `monitoring/heart-api-dashboard.json`. Panels: request rate by endpoint, p95 latency, error rate (4xx and 5xx) and predictions by class.
+In Grafana, add Prometheus as a data source, then **Dashboards, New, Import** and upload `monitoring/heart-api-dashboard.json`. Panels: request rate by endpoint, p95 latency, error rate (4xx and 5xx), predictions by class, hold-out model metrics, predicted-probability distribution, mean confidence, inference latency, share of positive predictions and a mean-of-inputs drift check.
 
 Helm values in `monitoring/` allow an in-cluster installation instead (`prometheus-values.yaml`, `grafana-values.yaml`). Because the VM scrapes through the load balancer, use a single replica for demonstrations; with more, each scrape lands on a random pod and per-pod counters interleave.
 
@@ -372,15 +379,116 @@ Helm values in `monitoring/` allow an in-cluster installation instead (`promethe
 
 Reports are uploaded as run artifacts. Accepted findings should be documented in the report with a reason rather than silently skipped.
 
+## Evidence
+
+Screenshots from the finished pipeline and deployment (also used in the report).
+
+**MLflow runs with cross-validation and test metrics**
+
+<img src="screenshots/mlflow_runs.jpg" alt="MLflow runs with cross-validation and test metrics" width="760">
+
+**MLflow comparison of the two runs**
+
+<img src="screenshots/mlflow_compare.jpg" alt="MLflow comparison of the two runs" width="760">
+
+**Artifacts logged with a run**
+
+<img src="screenshots/mlflow_artifacts.jpg" alt="Artifacts logged with a run" width="760">
+
+**pytest summary and coverage (22 passed)**
+
+<img src="screenshots/pytest_log.jpg" alt="pytest summary and coverage (22 passed)" width="760">
+
+**Pipeline run: five stages**
+
+<img src="screenshots/ci_run.jpg" alt="Pipeline run: five stages" width="760">
+
+**Manual approval before deployment**
+
+<img src="screenshots/approval.jpg" alt="Manual approval before deployment" width="760">
+
+**SonarQube quality gate: Passed**
+
+<img src="screenshots/sonar_gate.jpg" alt="SonarQube quality gate: Passed" width="760">
+
+**Checkov scan of the Dockerfile**
+
+<img src="screenshots/checkov_docker.jpg" alt="Checkov scan of the Dockerfile" width="760">
+
+**Checkov scan of the Kubernetes manifests**
+
+<img src="screenshots/checkov_k8s.jpg" alt="Checkov scan of the Kubernetes manifests" width="760">
+
+**OWASP ZAP report: 0 high, 0 medium, 2 low, 2 informational**
+
+<img src="screenshots/zap_report.jpg" alt="OWASP ZAP report: 0 high, 0 medium, 2 low, 2 informational" width="760">
+
+**Docker build step in the pipeline**
+
+<img src="screenshots/docker_build.jpg" alt="Docker build step in the pipeline" width="760">
+
+**Nodes, pods and LoadBalancer service on EKS**
+
+<img src="screenshots/kubectl_resources.jpg" alt="Nodes, pods and LoadBalancer service on EKS" width="760">
+
+**Public endpoint test: /health and /predict**
+
+<img src="screenshots/endpoint_test.jpg" alt="Public endpoint test: /health and /predict" width="760">
+
+**EKS cluster Active in the AWS console**
+
+<img src="screenshots/aws_console.jpg" alt="EKS cluster Active in the AWS console" width="760">
+
+**API request logs**
+
+<img src="screenshots/request_logs.jpg" alt="API request logs" width="760">
+
+**Prometheus query returning API counters**
+
+<img src="screenshots/prometheus.jpg" alt="Prometheus query returning API counters" width="760">
+
+**Grafana dashboard**
+
+<img src="screenshots/grafana.jpg" alt="Grafana dashboard" width="760">
+
+_Trivy scan of the built image: add `screenshots/trivy_report.png` from the pipeline log._
+
+## Troubleshooting
+
+| Symptom | Likely cause and fix |
+|---|---|
+| `ModuleNotFoundError: No module named 'src'` | run commands from the project root; in the notebook, the first cell locates the root automatically |
+| MLflow fails with an untrusted-types (`skops`) error | log the model with `serialization_format="cloudpickle"` (already set in `src/train.py`) |
+| Model fails to load in the container | the container Python version differs from the training version; set the `PYTHON_VERSION` build argument to match |
+| EKS node group fails to create | the account may not allow the chosen instance type; list allowed types and pick another |
+| `curl: Could not resolve host` on a new ELB | wait a few minutes for DNS, then retry; check `kubectl get endpoints` |
+| `workflows must be defined at the top level` | reusable workflows must sit directly in `.github/workflows/`, not in a subfolder |
+| `no version specified` for a `uses:` line | local reusable workflow paths must start with `./.github/workflows/` and match the filename exactly |
+| `kubectl` returns Unauthorized in CI | add the runner's IAM role to the cluster with an EKS access entry |
 
 ## Limitations and future work
 
 - The dataset has 303 patients, so metrics carry wide uncertainty and the model is not a clinical tool.
 - The API has no authentication or rate limiting, and the load balancer serves plain HTTP. Next steps: an API key and an ACM certificate.
-- No data or model drift monitoring, and the model is baked into the image rather than pulled from a registry.
-- Single-node deployment; in-cluster scraping and autoscaling would be the production approach.
+- Drift monitoring is basic: the dashboard tracks the mean of key inputs, but there is no statistical drift test or alerting. The model is baked into the image rather than pulled from a registry.
+- Small cluster; in-cluster scraping and autoscaling would be the production approach.
 
+## Deliverables checklist
+
+| Brief item | Where |
+|---|---|
+| Code, Dockerfile, requirements | `src/`, `dockerfiles/`, `requirements*.txt` |
+| Cleaned dataset and download script | `data/`, `src/download_data.py` |
+| Notebooks and scripts (EDA, training, inference) | `report/notebooks/01_eda.ipynb`, `src/train.py`, `src/app.py` |
+| Unit tests | `tests/` |
+| GitHub Actions workflows | `.github/workflows/` |
+| Deployment manifests | `kubernetes/` |
+| Monitoring configuration | `monitoring/` |
+| Screenshots | `screenshots/` |
+| Written report (about 10 pages) | `report/` |
+| Deployed API URL or access instructions | [Results at a glance](#results-at-a-glance), [Kubernetes deployment on EKS](#kubernetes-deployment-on-eks) |
+| Short pipeline video | link in [Results at a glance](#results-at-a-glance) |
 
 ## Author
 
-Rengaprakash S, 2025AE05107
+Rengaprakash S, 2025ae05107
