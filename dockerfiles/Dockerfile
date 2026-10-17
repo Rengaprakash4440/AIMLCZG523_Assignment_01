@@ -11,13 +11,14 @@ WORKDIR /app
 
 COPY requirements-api.txt .
 
+
 RUN python -m pip install --no-cache-dir \
       -r requirements-api.txt \
-    && python -m pip install --no-cache-dir --upgrade \
-      msgpack \
-      setuptools \
-      urllib3 \
-    && python -m pip check
+    && python -m pip check \
+    && python -m pip uninstall --yes \
+      setuptools wheel pip \
+    && python -c \
+      "import fastapi, uvicorn, sklearn, pandas; print('Runtime imports OK')"
 
 # Match the UID/GID specified by Kubernetes.
 RUN groupadd --gid 10001 appuser \
