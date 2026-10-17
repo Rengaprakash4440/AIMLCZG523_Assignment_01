@@ -1,12 +1,13 @@
+
 name: Build, Trivy scan and ECR push
 
-# Reusable: called by pipeline.yml. Returns the pushed image URI as an output.
-# Can also be run on its own (workflow_dispatch).
+# Reusable workflow called by the main MLOps pipeline.
+# Can also be executed manually.
 on:
   workflow_call:
     outputs:
       image:
-        description: Full ECR image URI (registry/repo:tag) that was pushed
+        description: Full ECR image URI successfully pushed
         value: ${{ jobs.build.outputs.image }}
   workflow_dispatch:
 
@@ -14,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  PYTHON_VERSION: "3.14"          # keep equal to PYTHON_VERSION in dockerfiles/Dockerfile
+  PYTHON_VERSION: "3.14"
   AWS_REGION: ap-south-1
   ECR_REPOSITORY: heart-api
 
@@ -22,52 +23,126 @@ jobs:
   build:
     name: Build, scan, push
     runs-on: self-hosted
+    timeout-minutes: 45
+
     outputs:
-      image: ${{ steps.meta.outputs.image }}
+      image: ${{ steps.push.outputs.image }}
+
     steps:
+      # ----------------------------------------------------
+      # 1. Checkout
+      # ----------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ----------------------------------------------------
+      # 2. Build image with a unique commit tag
+      # ----------------------------------------------------
       - name: Build Docker image
+        shell: bash
         run: |
-          sudo docker build \
-            -f dockerfiles/Dockerfile \
-            --build-arg PYTHON_VERSION=${{ env.PYTHON_VERSION }} \
-            -t heart:latest .
+          set -euo pipefail
 
-      # --exit-code 1 makes HIGH/CRITICAL findings fail the job, so a
-      # vulnerable image is never pushed
-      - name: Trivy image scan (gate)
+          LOCAL_IMAGE="heart:${GITHUB_SHA}"
+
+          echo "Building ${LOCAL_IMAGE}"
+
+          sudo docker build \
+            --pull \
+            -f dockerfiles/Dockerfile \
+            --build-arg PYTHON_VERSION="${PYTHON_VERSION}" \
+            -t "${LOCAL_IMAGE}" \
+            .
+
+          sudo docker image inspect "${LOCAL_IMAGE}" \
+            --format 'Built image ID: {{.Id}}'
+
+      # ----------------------------------------------------
+      # 3. Security gate: block vulnerable images
+      # ----------------------------------------------------
+      - name: Trivy image scan (security gate)
+        shell: bash
         run: |
+          set -euo pipefail
+
+          LOCAL_IMAGE="heart:${GITHUB_SHA}"
+
+          echo "Scanning ${LOCAL_IMAGE}"
+
           sudo trivy image \
             --scanners vuln \
             --severity HIGH,CRITICAL \
             --ignore-unfixed \
             --exit-code 1 \
-            heart:latest | tee trivy.log
+            --format table \
+            --no-progress \
+            "${LOCAL_IMAGE}" 2>&1 | tee trivy.log
 
-      - name: Verify AWS identity and compute image name
-        id: meta
-        run: |
-          ACCOUNT_ID=$(sudo aws sts get-caller-identity --query Account --output text)
-          ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-          echo "ECR_REGISTRY=$ECR_REGISTRY" >> "$GITHUB_ENV"
-          echo "image=${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "Trivy security gate passed."
 
-      - name: Login to Amazon ECR
-        run: |
-          sudo aws ecr get-login-password --region "$AWS_REGION" \
-            | sudo docker login --username AWS --password-stdin "$ECR_REGISTRY"
-
-      - name: Tag and push image
-        run: |
-          sudo docker tag heart:latest "${{ steps.meta.outputs.image }}"
-          sudo docker push "${{ steps.meta.outputs.image }}"
-
-      - name: Upload Trivy report
+      # ----------------------------------------------------
+      # 4. Preserve evidence even if scan fails
+      # ----------------------------------------------------
+      - name: Upload Trivy security report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trivy-report
           path: trivy.log
           if-no-files-found: warn
+
+      # ----------------------------------------------------
+      # 5. Verify AWS identity and prepare ECR URI
+      # ----------------------------------------------------
+      - name: Verify AWS identity and compute image URI
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ACCOUNT_ID="$(aws sts get-caller-identity \
+            --query Account \
+            --output text)"
+
+          ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+          IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}"
+
+          echo "ECR_REGISTRY=${ECR_REGISTRY}" >> "$GITHUB_ENV"
+          echo "IMAGE_URI=${IMAGE_URI}" >> "$GITHUB_ENV"
+
+          echo "Target ECR image: ${IMAGE_URI}"
+
+      # ----------------------------------------------------
+      # 6. Authenticate Docker to Amazon ECR
+      # ----------------------------------------------------
+      - name: Login to Amazon ECR
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          aws ecr get-login-password \
+            --region "${AWS_REGION}" \
+            | sudo docker login \
+                --username AWS \
+                --password-stdin "${ECR_REGISTRY}"
+
+      # ----------------------------------------------------
+      # 7. Push only after all security checks pass
+      # ----------------------------------------------------
+      - name: Tag and push verified image
+        id: push
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          LOCAL_IMAGE="heart:${GITHUB_SHA}"
+
+          sudo docker tag \
+            "${LOCAL_IMAGE}" \
+            "${IMAGE_URI}"
+
+          sudo docker push "${IMAGE_URI}"
+
+          echo "image=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+
+          echo "Successfully pushed ${IMAGE_URI}"
