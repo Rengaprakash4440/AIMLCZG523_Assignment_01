@@ -385,73 +385,75 @@ Screenshots from the finished pipeline and deployment (also used in the report).
 
 **MLflow runs with cross-validation and test metrics**
 
-<img src="screenshots/mlflow_runs.jpg" alt="MLflow runs with cross-validation and test metrics" width="760">
+<img src="screenshots/mlflow_runs.png" alt="MLflow runs with cross-validation and test metrics" width="760">
 
 **MLflow comparison of the two runs**
 
-<img src="screenshots/mlflow_compare.jpg" alt="MLflow comparison of the two runs" width="760">
+<img src="screenshots/mlflow_compare.png" alt="MLflow comparison of the two runs" width="760">
 
 **Artifacts logged with a run**
 
-<img src="screenshots/mlflow_artifacts.jpg" alt="Artifacts logged with a run" width="760">
+<img src="screenshots/mlflow_artifacts.png" alt="Artifacts logged with a run" width="760">
 
 **pytest summary and coverage (22 passed)**
 
-<img src="screenshots/pytest_log.jpg" alt="pytest summary and coverage (22 passed)" width="760">
+<img src="screenshots/pytest.png" alt="pytest summary and coverage (22 passed)" width="760">
 
 **Pipeline run: five stages**
 
-<img src="screenshots/ci_run.jpg" alt="Pipeline run: five stages" width="760">
+<img src="screenshots/ci_success.png" alt="Pipeline run: five stages" width="760">
 
 **Manual approval before deployment**
 
-<img src="screenshots/approval.jpg" alt="Manual approval before deployment" width="760">
+<img src="screenshots/approval_gate.png" alt="Manual approval before deployment" width="760">
 
 **SonarQube quality gate: Passed**
 
-<img src="screenshots/sonar_gate.jpg" alt="SonarQube quality gate: Passed" width="760">
+<img src="screenshots/sonarqube_quality_gate.png" alt="SonarQube quality gate: Passed" width="760">
 
 **Checkov scan of the Dockerfile**
 
-<img src="screenshots/checkov_docker.jpg" alt="Checkov scan of the Dockerfile" width="760">
+<img src="screenshots/checkov_docker.png" alt="Checkov scan of the Dockerfile" width="760">
 
 **Checkov scan of the Kubernetes manifests**
 
-<img src="screenshots/checkov_k8s.jpg" alt="Checkov scan of the Kubernetes manifests" width="760">
+<img src="screenshots/checkov_kubernetes.png" alt="Checkov scan of the Kubernetes manifests" width="760">
 
 **OWASP ZAP report: 0 high, 0 medium, 2 low, 2 informational**
 
-<img src="screenshots/zap_report.jpg" alt="OWASP ZAP report: 0 high, 0 medium, 2 low, 2 informational" width="760">
+<img src="screenshots/zap.png" alt="OWASP ZAP report: 0 high, 0 medium, 2 low, 2 informational" width="760">
 
 **Docker build step in the pipeline**
 
-<img src="screenshots/docker_build.jpg" alt="Docker build step in the pipeline" width="760">
+<img src="screenshots/docker_build.png" alt="Docker build step in the pipeline" width="760">
 
 **Nodes, pods and LoadBalancer service on EKS**
 
-<img src="screenshots/kubectl_resources.jpg" alt="Nodes, pods and LoadBalancer service on EKS" width="760">
+<img src="screenshots/eks_resources.png" alt="Nodes, pods and LoadBalancer service on EKS" width="760">
 
 **Public endpoint test: /health and /predict**
 
-<img src="screenshots/endpoint_test.jpg" alt="Public endpoint test: /health and /predict" width="760">
+<img src="screenshots/predict_response.png" alt="Public endpoint test: /health and /predict" width="760">
 
 **EKS cluster Active in the AWS console**
 
-<img src="screenshots/aws_console.jpg" alt="EKS cluster Active in the AWS console" width="760">
+<img src="screenshots/aws_console.png" alt="EKS cluster Active in the AWS console" width="760">
 
 **API request logs**
 
-<img src="screenshots/request_logs.jpg" alt="API request logs" width="760">
+<img src="screenshots/logs.png" alt="API request logs" width="760">
 
 **Prometheus query returning API counters**
 
-<img src="screenshots/prometheus.jpg" alt="Prometheus query returning API counters" width="760">
+<img src="screenshots/Prometheus.png" alt="Prometheus query returning API counters" width="760">
 
 **Grafana dashboard**
 
-<img src="screenshots/grafana.jpg" alt="Grafana dashboard" width="760">
+<img src="screenshots/grafana.png" alt="Grafana dashboard" width="760">
 
-_Trivy scan of the built image: add `screenshots/trivy_runs.png` from the pipeline log._
+_Trivy scan of the built image: 
+
+<img src="screenshots/trivy_runs.pngjpg" alt="Grafana dashboard" width="760">
 
 ## Troubleshooting
 
