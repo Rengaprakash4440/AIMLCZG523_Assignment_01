@@ -9,12 +9,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install only the API runtime dependencies.
-COPY requirements-api.txt ./requirements-api.txt
+COPY requirements-api.txt .
 
-RUN python -m pip install \
-    --no-cache-dir \
-    -r requirements-api.txt
+RUN python -m pip install --no-cache-dir \
+      -r requirements-api.txt \
+    && python -m pip install --no-cache-dir --upgrade \
+      msgpack \
+      setuptools \
+      urllib3 \
+    && python -m pip check
 
 # Match the UID/GID specified by Kubernetes.
 RUN groupadd --gid 10001 appuser \
