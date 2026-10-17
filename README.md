@@ -451,7 +451,7 @@ Screenshots from the finished pipeline and deployment (also used in the report).
 
 <img src="screenshots/grafana.jpg" alt="Grafana dashboard" width="760">
 
-_Trivy scan of the built image: add `screenshots/trivy_report.png` from the pipeline log._
+_Trivy scan of the built image: add `screenshots/trivy_runs.png` from the pipeline log._
 
 ## Troubleshooting
 
