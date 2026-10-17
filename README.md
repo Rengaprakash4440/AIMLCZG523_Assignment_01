@@ -429,7 +429,7 @@ Screenshots from the finished pipeline and deployment (also used in the report).
 
 **Nodes, pods and LoadBalancer service on EKS**
 
-<img src="screenshots/eks_resources.png" alt="Nodes, pods and LoadBalancer service on EKS" width="760">
+<img src="screenshots/eks_resource.png" alt="Nodes, pods and LoadBalancer service on EKS" width="760">
 
 **Public endpoint test: /health and /predict**
 
@@ -453,7 +453,7 @@ Screenshots from the finished pipeline and deployment (also used in the report).
 
 _Trivy scan of the built image: 
 
-<img src="screenshots/trivy_runs.pngjpg" alt="Grafana dashboard" width="760">
+<img src="screenshots/trivy_runs.pngp" alt="Trivy Runs" width="760">
 
 ## Troubleshooting
 
