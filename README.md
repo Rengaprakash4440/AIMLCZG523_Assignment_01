@@ -445,7 +445,7 @@ Screenshots from the finished pipeline and deployment (also used in the report).
 
 **Prometheus query returning API counters**
 
-<img src="screenshots/Prometheus.png" alt="Prometheus query returning API counters" width="760">
+<img src="screenshots/image.png" alt="Prometheus query returning API counters" width="760">
 
 **Grafana dashboard**
 
@@ -453,7 +453,7 @@ Screenshots from the finished pipeline and deployment (also used in the report).
 
 _Trivy scan of the built image: 
 
-<img src="screenshots/trivy_runs.pngp" alt="Trivy Runs" width="760">
+<img src="screenshots/trivy_runs.png" alt="Trivy Runs" width="760">
 
 ## Troubleshooting
 
