@@ -31,7 +31,7 @@ jobs:
 
   build:
     name: Build, Trivy, ECR push
-    # needs: [ml]
+    needs: [ml, quality]
     if: github.event_name != 'pull_request'
     uses: ./.github/workflows/docker-image.yml
 
