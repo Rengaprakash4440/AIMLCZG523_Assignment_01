@@ -86,7 +86,7 @@ Training and serving share one fitted scikit-learn `Pipeline` (imputation, scali
 ```
 .
 ├── .github/workflows/
-│   ├── MLOps_pipeline.yaml     # orchestrator: calls the five stage workflows in order
+│   ├── MlOps_pipeline.yaml     # orchestrator: calls the five stage workflows in order
 │   ├── ml_pipeline.yml         # stage 1: lint, tests, dataset, EDA, training, MLflow, reproducibility
 │   ├── sonarqube.yaml          # stage 2: SonarQube + Checkov
 │   ├── docker-image.yml        # stage 3: Docker build, Trivy gate, ECR push
